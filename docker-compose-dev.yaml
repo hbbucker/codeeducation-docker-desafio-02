@@ -1,0 +1,53 @@
+version: '3'
+services:
+
+  nginx:
+    image: hbbucker/codeeducation:desafio-2-nginx
+    build:
+      dockerfile: Dockerfile
+      context: nginx
+    tty: true
+    container_name: nginx
+    ports: 
+      - "8080:80"
+    networks:
+      - cyclenet
+    depends_on:
+          - db
+          - app
+
+  app:
+    image: hbbucker/codeeducation:desafio-2-node
+    build: 
+      dockerfile: Dockerfile.node
+      context: node
+    tty: true
+    container_name: app
+    entrypoint: dockerize -wait tcp://db:3306 -timeout 190s -wait-retry-interval 5s docker-entrypoint.sh
+    command: node index.js
+    ports:
+      - "3000:3000"
+    networks:
+      - cyclenet
+    depends_on:
+      - db
+
+  db: 
+    image: mysql:8-debian
+    command: --innodb-use-native-aio=0
+    container_name: db
+    restart: always
+    tty: true
+    volumes:
+      - ./mysql:/var/lib/mysql
+    environment:
+      - MYSQL_DATABASE=fullcycle
+      - MYSQL_ROOT_PASSWORD=root
+    ports:
+      - "3306:3306"
+    networks:
+      - cyclenet
+
+networks:
+  cyclenet:
+    driver: bridge
